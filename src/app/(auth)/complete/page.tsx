@@ -1,13 +1,13 @@
 // src/app/(auth)/complete/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { completeRegistration } from '@/lib/api/auth';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export default function CompletePage() {
+function CompletePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
@@ -47,7 +47,7 @@ export default function CompletePage() {
       if (response.success && response.data) {
         // トークンを保存
         localStorage.setItem('token', response.data.token);
-        
+
         // ダッシュボードへリダイレクト
         router.push('/dashboard');
       } else {
@@ -185,5 +185,13 @@ export default function CompletePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CompletePage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <CompletePageContent />
+    </Suspense>
   );
 }
