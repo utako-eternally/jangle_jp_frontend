@@ -1,13 +1,12 @@
 // src/app/(auth)/verify/page.tsx
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyEmail } from '@/lib/api/auth';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -15,7 +14,6 @@ export default function VerifyPage() {
 
   useEffect(() => {
     const token = searchParams.get('token');
-
     if (!token) {
       setError('トークンが見つかりません。');
       setLoading(false);
@@ -25,7 +23,6 @@ export default function VerifyPage() {
     const verify = async () => {
       try {
         const response = await verifyEmail({ token });
-
         if (response.success && response.data) {
           router.push(`/complete?token=${token}&email=${response.data.email}`);
         } else {
@@ -46,7 +43,6 @@ export default function VerifyPage() {
       <h2 className="text-2xl font-bold text-gray-900 mb-6">
         メール認証中...
       </h2>
-
       {loading ? (
         <LoadingSpinner />
       ) : error ? (
@@ -60,5 +56,13 @@ export default function VerifyPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <VerifyPageContent />
+    </Suspense>
   );
 }

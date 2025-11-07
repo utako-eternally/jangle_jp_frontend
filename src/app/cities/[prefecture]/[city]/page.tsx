@@ -1,7 +1,7 @@
 // src/app/cities/[prefecture]/[city]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Filter, Home, ChevronRight } from 'lucide-react';
@@ -19,7 +19,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Shop } from '@/types/models';
 import type { CityDetailResponse, CityStation } from '@/types/api';
 
-export default function CityPage() {
+function CityPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const prefectureSlug = params.prefecture as string;
@@ -395,5 +395,13 @@ export default function CityPage() {
         onApply={() => setIsFilterModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function CityPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
+      <CityPageContent />
+    </Suspense>
   );
 }

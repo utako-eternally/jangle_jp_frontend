@@ -1,7 +1,7 @@
 // src/app/prefectures/[slug]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Filter, Home, ChevronRight } from 'lucide-react';
@@ -37,7 +37,7 @@ interface City {
   shop_count: number;
 }
 
-export default function PrefecturePage() {
+function PrefecturePageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const slug = params.slug as string;
@@ -432,5 +432,13 @@ export default function PrefecturePage() {
         onApply={() => setIsFilterModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function PrefecturePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
+      <PrefecturePageContent />
+    </Suspense>
   );
 }

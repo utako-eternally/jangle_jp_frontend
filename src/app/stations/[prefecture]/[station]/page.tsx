@@ -1,7 +1,7 @@
 // src/app/stations/[prefecture]/[station]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Filter, Home, ChevronRight } from 'lucide-react';
@@ -19,7 +19,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Shop } from '@/types/models';
 import type { StationDetailResponse, NearbyStation } from '@/types/api';
 
-export default function StationPage() {
+function StationPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const prefectureSlug = params.prefecture as string;
@@ -413,5 +413,13 @@ export default function StationPage() {
         showDistanceFilter={true}
       />
     </div>
+  );
+}
+
+export default function StationPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
+      <StationPageContent />
+    </Suspense>
   );
 }
