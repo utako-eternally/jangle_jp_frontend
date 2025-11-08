@@ -48,7 +48,6 @@ export default function ShopStationForm({
 
   // GroupedStationInfoをStationInfoに変換（保存用）
   const convertToStationInfo = (grouped: GroupedStationInfo): StationInfo => {
-    // グループの代表駅（最初の路線）を使用
     const firstLine = grouped.lines[0];
     const allLines = grouped.lines.map((l) => l.line_name).join("、");
 
@@ -69,9 +68,20 @@ export default function ShopStationForm({
     };
   };
 
+  // 雀荘が変わったら初期化フラグをリセット
+  useEffect(() => {
+    hasInitialized.current = false;
+  }, [value?.nearest_station_id]);
+
   // 編集モード用の初期化処理
   useEffect(() => {
     if (hasInitialized.current) return;
+
+    // 既存のステートをクリア
+    setMainStation(null);
+    setSubStations([]);
+    setSelectionStep("main");
+    setError(null);
 
     // valueが存在する場合（編集モードまたは新規登録で戻った場合）
     if (
@@ -94,6 +104,9 @@ export default function ShopStationForm({
           value.stations?.main !== null && value.stations?.main !== undefined;
         onValidationChange(isValid);
       }
+    } else {
+      // valueがない場合も初期化完了とする
+      hasInitialized.current = true;
     }
   }, [mode, value, onValidationChange]);
 
@@ -150,7 +163,6 @@ export default function ShopStationForm({
       });
 
       if (result.success && result.data?.length) {
-        
         setNearbyStations(result.data);
         setSearchMode("nearby");
       } else {
@@ -180,7 +192,6 @@ export default function ShopStationForm({
       const result = await searchStationsByName({ keyword, limit: 30 });
 
       if (result.success && result.data?.length) {
-        // APIから既にグループ化済みのデータが返ってくる
         setSearchResults(result.data);
       } else {
         setSearchResults([]);
@@ -210,24 +221,33 @@ export default function ShopStationForm({
   const handleSelectMainStation = (groupedStation: GroupedStationInfo) => {
     const station = convertToStationInfo(groupedStation);
     setMainStation(station);
+    setSubStations([]);  // サブ駅をクリア
     setSelectionStep("sub");
     setError(null);
-    updateValidation(station, subStations);
+    updateValidation(station, []);  // 空配列を渡す
   };
 
   // サブ駅追加処理
   const handleAddSubStation = (groupedStation: GroupedStationInfo) => {
     const station = convertToStationInfo(groupedStation);
 
+    // メイン駅とのグループIDチェック
     if (
       mainStation &&
       station.station_group?.id &&
       mainStation.station_group?.id === station.station_group.id
     ) {
+      setError("メイン駅と同じ駅グループは選択できません");
+      return;
+    }
+
+    // メイン駅との個別IDチェック（グループ化されていない駅用）
+    if (mainStation && station.id === mainStation.id) {
       setError("メイン駅と同じ駅は選択できません");
       return;
     }
 
+    // 既存サブ駅とのグループIDチェック
     if (
       subStations.some(
         (s) =>
@@ -236,6 +256,12 @@ export default function ShopStationForm({
           s.station_group.id === station.station_group.id
       )
     ) {
+      setError("既に選択済みの駅グループです");
+      return;
+    }
+
+    // 既存サブ駅との個別IDチェック
+    if (subStations.some((s) => s.id === station.id)) {
       setError("既に選択済みの駅です");
       return;
     }
@@ -264,6 +290,7 @@ export default function ShopStationForm({
     setSubStations([]);
     setSelectionStep("main");
     setError(null);
+    hasInitialized.current = false;  // 初期化フラグもリセット
     updateValidation(null, []);
 
     if (
@@ -281,17 +308,18 @@ export default function ShopStationForm({
       searchMode === "nearby" ? nearbyStations : searchResults;
 
     return allStations.filter((grouped) => {
-      // メイン駅との比較
-      // station_group_idで比較
+      // メイン駅との比較 - グループIDで比較
       if (
         mainStation?.station_group?.id &&
         grouped.station_group_id === mainStation.station_group.id
       ) {
         return false;
       }
-      // station_idで比較（グループ化されていない駅用）
+      
+      // メイン駅との比較 - 個別駅IDで比較（グループ化されていない駅用）
       if (
         mainStation?.id &&
+        !mainStation.station_group?.id &&
         grouped.lines &&
         grouped.lines.some((line) => line.station_id === mainStation.id)
       ) {
@@ -300,16 +328,18 @@ export default function ShopStationForm({
 
       // サブ駅との比較
       for (const subStation of subStations) {
-        // station_group_idで比較
+        // グループIDで比較
         if (
           subStation.station_group?.id &&
           grouped.station_group_id === subStation.station_group.id
         ) {
           return false;
         }
-        // station_idで比較（グループ化されていない駅用）
+        
+        // 個別駅IDで比較（グループ化されていない駅用）
         if (
           subStation.id &&
+          !subStation.station_group?.id &&
           grouped.lines &&
           grouped.lines.some((line) => line.station_id === subStation.id)
         ) {
@@ -370,12 +400,6 @@ export default function ShopStationForm({
       station.lines && station.lines.length > 0
         ? station.lines.map((l) => l.line_name).join("、")
         : "";
-
-    console.log("=== GroupedStationCard ===", {
-      stationName,
-      allLines,
-      station,
-    });
 
     return (
       <div

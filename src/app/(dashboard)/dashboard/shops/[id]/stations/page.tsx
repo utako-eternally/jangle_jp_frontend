@@ -11,23 +11,6 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { SuccessMessage } from "@/components/ui/success-message";
 import ShopStationForm from "@/app/shops/components/ShopStationForm";
 
-// ヒュベニの公式で2点間の距離を計算（km）
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  
-  const R = 6371; // 地球の半径（km）
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 export default function StationsEditPage() {
   const params = useParams();
   const router = useRouter();
@@ -53,19 +36,16 @@ export default function StationsEditPage() {
         // 店舗情報を取得
         const shopResponse = await getMyShop(Number(shopId));
         
-        let shopCoordinates: { lat: number; lng: number } | null = null;
-        
         if (shopResponse.success && shopResponse.data) {
           const shopData = shopResponse.data;
           setShop(shopData);
 
           // 住所座標を設定
           if (shopData.lat && shopData.lng) {
-            shopCoordinates = {
+            setAddressCoordinates({
               lat: shopData.lat,
               lng: shopData.lng,
-            };
-            setAddressCoordinates(shopCoordinates);
+            });
           }
         }
 
@@ -77,38 +57,26 @@ export default function StationsEditPage() {
           
           console.log('=== 駅情報APIレスポンス ===', stations);
           
-          // APIは main_station を返す
           let nearestStation = stations.main_station;
           let subStations = stations.sub_stations || [];
 
-          console.log('=== main_station ===', nearestStation);
-          console.log('=== sub_stations ===', subStations);
-
-          // メイン駅の処理
-          if (nearestStation) {
-            if (nearestStation.distance_km) {
-              const distance = parseFloat(nearestStation.distance_km);
-              const walkingTime = nearestStation.walking_minutes || Math.ceil(distance * 1000 / 80);
-              
-              console.log('=== メイン駅の距離 ===', { distance, walkingTime });
-              
-              nearestStation = {
-                ...nearestStation,
-                distance,
-                walking_time: walkingTime,
-              };
-            }
+          // メイン駅の距離情報を処理
+          if (nearestStation && nearestStation.distance_km) {
+            const distance = parseFloat(nearestStation.distance_km);
+            const walkingTime = nearestStation.walking_minutes || Math.ceil(distance * 1000 / 80);
+            
+            nearestStation = {
+              ...nearestStation,
+              distance,
+              walking_time: walkingTime,
+            };
           }
 
-          // サブ駅の処理
-          subStations = subStations.map((station: any, index: number) => {
-            console.log(`=== サブ駅${index + 1} ===`, station);
-            
+          // サブ駅の距離情報を処理
+          subStations = subStations.map((station: any) => {
             if (station.distance_km) {
               const distance = parseFloat(station.distance_km);
-              const walkingTime = station.walking_time;
-              
-              console.log(`=== サブ駅${index + 1}の距離 ===`, { distance, walkingTime });
+              const walkingTime = station.walking_minutes || Math.ceil(distance * 1000 / 80);
               
               return {
                 ...station,
@@ -116,12 +84,8 @@ export default function StationsEditPage() {
                 walking_time: walkingTime,
               };
             }
-            
-            console.log(`=== サブ駅${index + 1}の距離情報なし ===`);
             return station;
           });
-          
-          console.log('=== 処理後のサブ駅 ===', subStations);
           
           // フォーム用のデータ形式に変換
           const formData = {
@@ -133,10 +97,15 @@ export default function StationsEditPage() {
             },
           };
           
-          console.log('=== 最終的なformData ===', formData);
+          console.log('=== ShopStationFormに渡すformData ===', formData);
 
           setStationData(formData);
           setStationValid(!!nearestStation);
+        } else {
+          // 駅情報がない場合は空の状態で初期化
+          console.log('=== 駅情報なし - 空で初期化 ===');
+          setStationData(null);
+          setStationValid(false);
         }
       } catch (err: any) {
         console.error("データ取得エラー:", err);
@@ -156,13 +125,18 @@ export default function StationsEditPage() {
       return;
     }
 
+    if (!stationData?.nearest_station_id) {
+      setError("メイン駅を選択してください。");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     setSuccessMessage("");
 
     try {
       const submitData = {
-        nearest_station_id: stationData.nearest_station_id,
+        main_station_id: stationData.nearest_station_id,
         sub_station_ids: stationData.sub_station_ids || [],
       };
 
