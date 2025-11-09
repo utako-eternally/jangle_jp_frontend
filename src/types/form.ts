@@ -37,6 +37,7 @@ export interface ShopBusinessTypeForm {
 
 // 住所フォーム
 export interface ShopAddressForm {
+  postal_code?: string;
   node_address_result?: {
     lat: number;
     lng: number;
@@ -188,6 +189,7 @@ export interface ShopBasicInfoFormData {
 export interface ShopAddressFormData {
   prefecture_id: number;
   city_id: number;
+  postal_code?: string;
   address_pref: string;
   address_city: string;
   address_town: string;

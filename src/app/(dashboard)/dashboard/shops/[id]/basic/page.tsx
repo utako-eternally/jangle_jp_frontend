@@ -60,6 +60,7 @@ export default function BasicInfoEditPage() {
 
           // 住所情報を初期化
           if (shopData.lat && shopData.lng) {
+            
             setAddressData({
               node_address_result: {
                 lat: shopData.lat,
@@ -76,7 +77,7 @@ export default function BasicInfoEditPage() {
                   town: shopData.address_town || "",
                   street: shopData.address_street || "",
                   building: shopData.address_building || "",
-                  postal_code: "",
+                  postal_code: shopData.postal_code || "",  // 修正
                 },
               },
             });
@@ -129,6 +130,11 @@ export default function BasicInfoEditPage() {
           submitData.address_town = details.town || "";
           submitData.address_street = details.street || "";
           submitData.address_building = details.building || "";
+          
+          // 郵便番号を追加
+          if (details.postal_code) {
+            submitData.postal_code = details.postal_code;
+          }
         }
       }
 

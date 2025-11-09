@@ -525,6 +525,13 @@ const processAddressWithPostal = async () => {
               <h4 className="text-sm font-medium text-blue-800 mb-1">
                 📍 現在の住所
               </h4>
+              {/* 郵便番号を追加 ← ここを追加 */}
+              {value?.node_address_result?.address_details?.postal_code && (
+                <p className="text-xs text-blue-600 mb-1">
+                  〒{value.node_address_result.address_details.postal_code.slice(0, 3)}-
+                  {value.node_address_result.address_details.postal_code.slice(3)}
+                </p>
+              )}
               <p className="text-sm text-blue-700">{finalAddress}</p>
               {processedAddress.final_coordinates && (
                 <p className="text-xs text-blue-600 mt-1">

@@ -9,6 +9,11 @@ import { Shop } from "@/types/models";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorMessage } from "@/components/ui/error-message";
 
+const formatPostalCode = (code: string | null | undefined): string => {
+  if (!code || code.length !== 7) return '';
+  return `〒${code.slice(0, 3)}-${code.slice(3)}`;
+};
+
 export default function ShopOverviewPage() {
   const params = useParams();
   const shopId = params.id as string;
@@ -171,6 +176,11 @@ export default function ShopOverviewPage() {
           <div>
             <span className="text-sm text-gray-500">住所</span>
             <p className="text-gray-900">
+              {shop.postal_code && (
+                <span className="block text-sm mb-1">
+                  {formatPostalCode(shop.postal_code)}
+                </span>
+              )}
               {shop.address_pref} {shop.address_city} {shop.address_town}{" "}
               {shop.address_street}
             </p>

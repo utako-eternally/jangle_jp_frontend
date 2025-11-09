@@ -167,6 +167,7 @@ export interface Shop {
   table_count: number;
   score_table_count: number;
   auto_table_count: number;
+  postal_code?: string | null;
   prefecture_id?: number;
   city_id?: number;
   lat?: number;

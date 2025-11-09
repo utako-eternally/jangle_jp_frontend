@@ -299,6 +299,10 @@ export default function ShopForm({
         submitFormData.append("address_pref", details.prefecture || "");
         submitFormData.append("address_city", details.city || "");
         submitFormData.append("address_town", details.town || "");
+
+        if (details.postal_code) {
+          submitFormData.append("postal_code", details.postal_code);
+        }
         if (details.street) {
           submitFormData.append("address_street", details.street);
         }

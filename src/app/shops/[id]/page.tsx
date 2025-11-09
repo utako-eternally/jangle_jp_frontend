@@ -24,6 +24,11 @@ import { Shop, ShopImage, DAY_OF_WEEK_SHORT_LABELS } from "@/types/models";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorMessage } from "@/components/ui/error-message";
 
+const formatPostalCode = (code: string | null | undefined): string => {
+  if (!code || code.length !== 7) return '';
+  return `${code.slice(0, 3)}-${code.slice(3)}`;
+};
+
 export default function ShopPublicPage() {
   const params = useParams();
   const shopId = params.id as string;
@@ -476,11 +481,18 @@ export default function ShopPublicPage() {
                   <MapPin className="w-5 h-5 mr-2 text-red-600 mt-0.5 flex-shrink-0" />
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">住所</h3>
-                    <p className="text-gray-700">
-                      〒{shop.address_pref}{shop.address_city}{shop.address_town}
-                      {shop.address_street && ` ${shop.address_street}`}
-                      {shop.address_building && ` ${shop.address_building}`}
+                    <div className="text-gray-700">
+                    {shop.postal_code && (
+                        <p className="text-sm text-gray-600 mb-1">
+                        〒{formatPostalCode(shop.postal_code)}
+                        </p>
+                    )}
+                    <p>
+                        {shop.address_pref}{shop.address_city}{shop.address_town}
+                        {shop.address_street && ` ${shop.address_street}`}
+                        {shop.address_building && ` ${shop.address_building}`}
                     </p>
+                    </div>
                   </div>
                 </div>
               </div>

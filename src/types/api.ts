@@ -141,6 +141,7 @@ export interface CreateShopRequest {
   table_count: number;
   score_table_count: number;
   auto_table_count: number;
+  postal_code?: string;
   address_pref: string;
   address_city: string;
   address_town: string;
@@ -167,6 +168,7 @@ export interface UpdateShopRequest {
   table_count?: number;
   score_table_count?: number;
   auto_table_count?: number;
+  postal_code?: string;
   address_pref?: string;
   address_city?: string;
   address_town?: string;
