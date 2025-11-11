@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, User } from "lucide-react";
+import { Plus, User, Phone, MapPin, Train, ExternalLink, Settings } from "lucide-react";
 import { getMyShops } from "@/lib/api/shops";
 import { getProfile } from "@/lib/api/auth";
 import { Shop, User as UserType } from "@/types/models";
@@ -26,7 +26,7 @@ export default function DashboardPage() {
         }
 
         // 雀荘一覧取得
-        const shopsResponse = await getMyShops({ per_page: 5 });
+        const shopsResponse = await getMyShops({ per_page: 10 });
         if (shopsResponse.success && shopsResponse.data) {
           setShops(shopsResponse.data.data);
         }
@@ -50,12 +50,23 @@ export default function DashboardPage() {
       
       if (!relativePath) return null;
       
-      // バックエンドのストレージURLを使用
       const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL || 'http://localhost:8000/storage';
       return `${storageUrl}/${relativePath}`;
     } catch {
       return null;
     }
+  };
+
+  // 日時フォーマット
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -121,20 +132,12 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* 最近の雀荘 */}
+      {/* 登録済みの雀荘 */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900">
-              登録済みの雀荘
-            </h3>
-            <Link
-              href="/dashboard/shops"
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              すべて見る →
-            </Link>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">
+            登録済みの雀荘 ({shops.length}件)
+          </h3>
         </div>
         <div className="p-6">
           {shops.length === 0 ? (
@@ -148,142 +151,236 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {shops.map((shop) => {
                 const mainImageUrl = getMainImageUrl(shop.main_image_paths);
 
                 return (
-                  <Link
+                  <div
                     key={shop.id}
-                    href={`/dashboard/shops/${shop.id}`}
-                    className="block border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden"
+                    className="border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden"
                   >
-                    <div className="flex">
-                      {/* 左: 基本情報 (30%) */}
-                      <div className="w-[30%] p-6 bg-gray-50 flex flex-col justify-center">
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">
-                          {shop.name}
-                        </h4>
-                        
-                        {shop.phone && (
-                          <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <span className="mr-2">📞</span>
-                            <span>{shop.phone}</span>
-                          </div>
-                        )}
-                        
-                        {/* 非公開中の警告 */}
-                        {!shop.is_verified && (
-                        <div className="mb-3 px-3 py-2 bg-yellow-100 border border-yellow-300 rounded-lg">
-                            <p className="text-xs font-medium text-yellow-800">
-                            ⚠️ 現在非公開
-                            </p>
-                            <p className="text-xs text-yellow-700 mt-1">
-                            事務局確認中
-                            </p>
-                        </div>
-                        )}
-
-                        {shop.website_url && (
-                          <div className="flex items-center text-sm text-blue-600 mb-2 truncate">
-                            <span className="mr-2">🌐</span>
-                            <span className="truncate">{shop.website_url}</span>
-                          </div>
-                        )}
-                        
-                        {shop.open_hours && (
-                          <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <span className="mr-2">🕐</span>
-                            <span>{shop.open_hours}</span>
-                          </div>
-                        )}
-
-                        {shop.is_verified && (
-                          <div className="mt-3">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              認証済み
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 中央: メイン画像 (40%) */}
-                      <div className="w-[40%]">
+                    <div className="flex gap-4 p-4">
+                      {/* 左：画像 */}
+                      <div className="w-40 h-40 flex-shrink-0 rounded-lg overflow-hidden">
                         {mainImageUrl ? (
-                          <div className="w-full h-64 bg-gray-100">
-                            <img
-                              src={mainImageUrl}
-                              alt={shop.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+                          <img
+                            src={mainImageUrl}
+                            alt={shop.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <div className="w-full h-64 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                            <span className="text-gray-400 text-6xl">🀄</span>
+                          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-5xl">🀄</span>
                           </div>
                         )}
                       </div>
 
-                      {/* 右: 詳細情報 (30%) */}
-                      <div className="w-[30%] p-6 bg-white">
-                        {/* 住所 */}
-                        <p className="text-sm text-gray-600 mb-4">
-                          📍 {shop.address_pref} {shop.address_city} {shop.address_town}
-                        </p>
-
-                        {/* 営業形態 */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {shop.three_player_free && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              三麻フリー
-                            </span>
-                          )}
-                          {shop.four_player_free && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              四麻フリー
-                            </span>
-                          )}
-                          {shop.set && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                              セット
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 卓数情報 */}
-                        <div className="space-y-3 pt-4 border-t border-gray-200">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">総卓数</span>
-                            <span className="text-lg font-semibold text-gray-900">{shop.table_count}</span>
+                      {/* 右：情報 */}
+                      <div className="flex-1 min-w-0">
+                        {/* 上部：店舗名 + ステータス */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xl font-bold text-gray-900 mb-1 truncate">
+                              {shop.name}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              最終更新: {formatDate(shop.updated_at)}
+                            </p>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">点数卓</span>
-                            <span className="text-lg font-semibold text-gray-900">{shop.score_table_count}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">全自動卓</span>
-                            <span className="text-lg font-semibold text-gray-900">{shop.auto_table_count}</span>
-                          </div>
-                        </div>
-
-                        {/* プラン情報 */}
-                        {shop.active_plan && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500">プラン</span>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                shop.active_plan.plan_type === 'free' 
+                          <div className="flex gap-2 ml-4">
+                            {/* 公開状態バッジ */}
+                            {shop.is_verified ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                                ✓ 公開中
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
+                                ⚠ 非公開
+                              </span>
+                            )}
+                            {/* プランバッジ */}
+                            {shop.active_plan && (
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                                shop.active_plan.plan_type === 'free'
                                   ? 'bg-gray-100 text-gray-800'
                                   : 'bg-yellow-100 text-yellow-800'
                               }`}>
-                                {shop.active_plan.plan_type === 'free' ? 'フリー' : '有料'}
+                                {shop.active_plan.plan_type === 'free' ? 'フリープラン' : '有料プラン'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 営業形態と料金（3列グリッド） */}
+                        <div className="grid grid-cols-3 gap-4 mb-3">
+                          {/* 三麻 */}
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">三麻フリー</p>
+                            {shop.frees && shop.frees.find((f: any) => f.game_format === 'THREE_PLAYER') ? (
+                              <div>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                                  対応
+                                </span>
+                                {(() => {
+                                  const threePlayerFree = shop.frees.find((f: any) => f.game_format === 'THREE_PLAYER');
+                                  const minPrice = threePlayerFree?.summary?.min_price ?? threePlayerFree?.price;
+                                  const maxPrice = threePlayerFree?.summary?.max_price ?? threePlayerFree?.price;
+                                  
+                                  if (minPrice !== null && minPrice !== undefined) {
+                                    return (
+                                      <p className="text-sm text-gray-900 font-semibold">
+                                        {minPrice === maxPrice ? (
+                                          `¥${minPrice.toLocaleString()}`
+                                        ) : (
+                                          `¥${minPrice.toLocaleString()}〜`
+                                        )}
+                                      </p>
+                                    );
+                                  }
+                                  return <p className="text-xs text-gray-400">料金未設定</p>;
+                                })()}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">未対応</span>
+                            )}
+                          </div>
+
+                          {/* 四麻 */}
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">四麻フリー</p>
+                            {shop.frees && shop.frees.find((f: any) => f.game_format === 'FOUR_PLAYER') ? (
+                              <div>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                                  対応
+                                </span>
+                                {(() => {
+                                  const fourPlayerFree = shop.frees.find((f: any) => f.game_format === 'FOUR_PLAYER');
+                                  const minPrice = fourPlayerFree?.summary?.min_price ?? fourPlayerFree?.price;
+                                  const maxPrice = fourPlayerFree?.summary?.max_price ?? fourPlayerFree?.price;
+                                  
+                                  if (minPrice !== null && minPrice !== undefined) {
+                                    return (
+                                      <p className="text-sm text-gray-900 font-semibold">
+                                        {minPrice === maxPrice ? (
+                                          `¥${minPrice.toLocaleString()}`
+                                        ) : (
+                                          `¥${minPrice.toLocaleString()}〜`
+                                        )}
+                                      </p>
+                                    );
+                                  }
+                                  return <p className="text-xs text-gray-400">料金未設定</p>;
+                                })()}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">未対応</span>
+                            )}
+                          </div>
+
+                          {/* セット */}
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">セット</p>
+                            {shop.set ? (
+                              <div>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                                  対応
+                                </span>
+                                {(() => {
+                                  const minPrice = shop.set.price_summary?.overall_min_price ?? shop.set.price;
+                                  
+                                  if (minPrice !== null && minPrice !== undefined) {
+                                    return (
+                                      <p className="text-sm text-gray-900 font-semibold">
+                                        ¥{minPrice.toLocaleString()} / 時間
+                                      </p>
+                                    );
+                                  }
+                                  return <p className="text-xs text-gray-400">料金未設定</p>;
+                                })()}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">未対応</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 最寄り駅 */}
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1">最寄り駅</p>
+                          {shop.nearest_station ? (
+                            <div className="flex items-center text-sm text-gray-900">
+                              <Train className="w-3 h-3 mr-1 flex-shrink-0 text-blue-600" />
+                              <span className="truncate">
+                                {shop.nearest_station.name}駅 徒歩{shop.nearest_station.walking_minutes}分
                               </span>
                             </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">未設定</span>
+                          )}
+                        </div>
+
+                        {/* 住所 */}
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1">住所</p>
+                          <div className="flex items-start text-sm text-gray-900">
+                            <MapPin className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0 text-red-600" />
+                            <span className="truncate">
+                              〒{shop.postal_code || '―'} {shop.address_pref}{shop.address_city}{shop.address_town}
+                            </span>
                           </div>
-                        )}
+                        </div>
+
+                        {/* 卓数・電話番号（2列） */}
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          {/* 卓数 */}
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">卓数</p>
+                            <p className="text-sm text-gray-900">
+                              全{shop.table_count}卓
+                              {shop.table_count > 0 && (
+                                <span className="text-xs text-gray-600 ml-1">
+                                  (点{shop.score_table_count}・自{shop.auto_table_count})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          {/* 電話番号 */}
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">電話番号</p>
+                            {shop.phone ? (
+                              <div className="flex items-center text-sm text-gray-900">
+                                <Phone className="w-3 h-3 mr-1 flex-shrink-0 text-green-600" />
+                                <span>{shop.phone}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">未設定</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 下部：アクションボタン */}
+                        <div className="flex gap-2 pt-3 border-t border-gray-100">
+                          <Link
+                            href={`/dashboard/shops/${shop.id}`}
+                            className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Settings className="w-4 h-4" />
+                            管理画面へ
+                          </Link>
+                          <Link
+                            href={`/shops/${shop.id}`}
+                            target="_blank"
+                            className="flex items-center gap-1 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            公開ページを見る
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

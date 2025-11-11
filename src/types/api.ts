@@ -133,7 +133,8 @@ export interface CreateShopRequest {
   business_hours?: Array<{
     day_of_week: number;
     is_closed?: boolean;
-    is_24h?: boolean;
+    is_open_flexible?: boolean;  // 追加
+    is_close_flexible?: boolean; // 追加
     open_time?: string;
     close_time?: string;
     note?: string;
@@ -160,7 +161,8 @@ export interface UpdateShopRequest {
   business_hours?: Array<{
     day_of_week: number;
     is_closed?: boolean;
-    is_24h?: boolean;
+    is_open_flexible?: boolean;  // 追加
+    is_close_flexible?: boolean; // 追加
     open_time?: string;
     close_time?: string;
     note?: string;
@@ -1171,7 +1173,8 @@ export interface BusinessHoursResponse {
     day_of_week: number;
     day_name: string;
     is_closed: boolean;
-    is_24h: boolean;
+    is_open_flexible: boolean;  // 追加
+    is_close_flexible: boolean; // 追加
     open_time: string | null;
     close_time: string | null;
     note: string | null;
@@ -1188,7 +1191,8 @@ export interface UpdateBusinessHoursRequest {
   business_hours: Array<{
     day_of_week: number;
     is_closed?: boolean;
-    is_24h?: boolean;
+    is_open_flexible?: boolean;  // 追加
+    is_close_flexible?: boolean; // 追加
     open_time?: string;
     close_time?: string;
     note?: string;

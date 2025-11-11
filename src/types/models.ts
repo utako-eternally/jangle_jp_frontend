@@ -527,7 +527,8 @@ export interface ShopBusinessHour {
   day_of_week: DayOfWeek;
   day_name: string;
   is_closed: boolean;
-  is_24h: boolean;
+  is_open_flexible: boolean;
+  is_close_flexible: boolean;
   open_time: string | null;
   close_time: string | null;
   display_text: string;

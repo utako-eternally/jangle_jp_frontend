@@ -1,4 +1,3 @@
-// src/app/shops/components/ShopBusinessHoursForm.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,7 +7,8 @@ import { DayOfWeek, DAY_OF_WEEK_LABELS } from "@/types/models";
 export interface BusinessHourFormData {
   day_of_week: DayOfWeek;
   is_closed: boolean;
-  is_24h: boolean;
+  is_open_flexible: boolean;
+  is_close_flexible: boolean;
   open_time: string;
   close_time: string;
 }
@@ -23,15 +23,44 @@ interface ShopBusinessHoursFormProps {
 }
 
 const defaultHours: BusinessHourFormData[] = [
-  { day_of_week: 0, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 1, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 2, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 3, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 4, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 5, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 6, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
-  { day_of_week: 7, is_closed: false, is_24h: false, open_time: "12:00", close_time: "23:00" },
+  { day_of_week: 0, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 1, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 2, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 3, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 4, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 5, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 6, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
+  { day_of_week: 7, is_closed: false, is_open_flexible: false, is_close_flexible: false, open_time: "", close_time: "" },
 ];
+
+// 時間選択肢を生成（空、オープン、00:00～23:30、ラスト）
+const generateTimeOptions = (type: 'open' | 'close') => {
+  const options: Array<{ value: string; label: string }> = [];
+  
+  // 空のオプション
+  options.push({ value: '', label: '選択してください' });
+  
+  if (type === 'open') {
+    options.push({ value: 'OPEN', label: 'オープン' });
+  }
+  
+  // 00:00 から 23:30 まで30分刻み
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      options.push({ value: timeStr, label: timeStr });
+    }
+  }
+  
+  if (type === 'close') {
+    options.push({ value: 'LAST', label: 'ラスト' });
+  }
+  
+  return options;
+};
+
+const openTimeOptions = generateTimeOptions('open');
+const closeTimeOptions = generateTimeOptions('close');
 
 export default function ShopBusinessHoursForm({
   value,
@@ -64,32 +93,65 @@ export default function ShopBusinessHoursForm({
     }
   }, [hoursText]);
 
-  const updateHour = (dayOfWeek: DayOfWeek, field: keyof BusinessHourFormData, value: any) => {
-    setBusinessHours(prev =>
-      prev.map(h =>
-        h.day_of_week === dayOfWeek ? { ...h, [field]: value } : h
-      )
-    );
-  };
-
   const handleClosedChange = (dayOfWeek: DayOfWeek, isClosed: boolean) => {
     setBusinessHours(prev =>
       prev.map(h =>
         h.day_of_week === dayOfWeek
-          ? { ...h, is_closed: isClosed, is_24h: false }
+          ? { 
+              ...h, 
+              is_closed: isClosed, 
+              is_open_flexible: false,
+              is_close_flexible: false 
+            }
           : h
       )
     );
   };
 
-  const handle24hChange = (dayOfWeek: DayOfWeek, is24h: boolean) => {
+  const handleOpenTimeChange = (dayOfWeek: DayOfWeek, value: string) => {
     setBusinessHours(prev =>
-      prev.map(h =>
-        h.day_of_week === dayOfWeek
-          ? { ...h, is_24h: is24h, is_closed: false, open_time: "", close_time: "" }
-          : h
-      )
+      prev.map(h => {
+        if (h.day_of_week === dayOfWeek) {
+          if (value === 'OPEN') {
+            return { ...h, is_open_flexible: true, open_time: '' };
+          } else {
+            return { ...h, is_open_flexible: false, open_time: value };
+          }
+        }
+        return h;
+      })
     );
+  };
+
+  const handleCloseTimeChange = (dayOfWeek: DayOfWeek, value: string) => {
+    setBusinessHours(prev =>
+      prev.map(h => {
+        if (h.day_of_week === dayOfWeek) {
+          if (value === 'LAST') {
+            return { ...h, is_close_flexible: true, close_time: '' };
+          } else {
+            return { ...h, is_close_flexible: false, close_time: value };
+          }
+        }
+        return h;
+      })
+    );
+  };
+
+  const getOpenSelectValue = (hour: BusinessHourFormData): string => {
+    if (hour.is_open_flexible) return 'OPEN';
+    // open_timeがnullまたは空文字の場合は空文字を返す
+    if (!hour.open_time) return '';
+    // HH:MM:SS形式の場合はHH:MM形式に変換
+    return hour.open_time.substring(0, 5);
+  };
+
+  const getCloseSelectValue = (hour: BusinessHourFormData): string => {
+    if (hour.is_close_flexible) return 'LAST';
+    // close_timeがnullまたは空文字の場合は空文字を返す
+    if (!hour.close_time) return '';
+    // HH:MM:SS形式の場合はHH:MM形式に変換
+    return hour.close_time.substring(0, 5);
   };
 
   const copyToAllDays = (sourceDay: DayOfWeek) => {
@@ -101,7 +163,8 @@ export default function ShopBusinessHoursForm({
         prev.map(h => ({
           ...h,
           is_closed: sourceHour.is_closed,
-          is_24h: sourceHour.is_24h,
+          is_open_flexible: sourceHour.is_open_flexible,
+          is_close_flexible: sourceHour.is_close_flexible,
           open_time: sourceHour.open_time,
           close_time: sourceHour.close_time,
         }))
@@ -110,7 +173,7 @@ export default function ShopBusinessHoursForm({
   };
 
   const renderDayRow = (hour: BusinessHourFormData) => {
-    const { day_of_week, is_closed, is_24h, open_time, close_time } = hour;
+    const { day_of_week, is_closed } = hour;
 
     return (
       <div
@@ -137,42 +200,38 @@ export default function ShopBusinessHoursForm({
           </label>
         </div>
 
-        {/* 24時間営業チェックボックス */}
-        <div className="col-span-2">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={is_24h}
-              disabled={is_closed}
-              onChange={(e) => handle24hChange(day_of_week, e.target.checked)}
-              className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 disabled:opacity-50"
-            />
-            <span className="ml-2 text-sm text-gray-700">24時間</span>
-          </label>
-        </div>
-
         {/* 営業時間 */}
-        <div className="col-span-4">
-          {!is_closed && !is_24h ? (
+        <div className="col-span-6">
+          {!is_closed ? (
             <div className="flex items-center space-x-2">
-              <input
-                type="time"
-                value={open_time}
-                onChange={(e) => updateHour(day_of_week, "open_time", e.target.value)}
-                className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
+              <select
+                value={getOpenSelectValue(hour)}
+                onChange={(e) => handleOpenTimeChange(day_of_week, e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              >
+                {openTimeOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              
               <span className="text-gray-500">〜</span>
-              <input
-                type="time"
-                value={close_time}
-                onChange={(e) => updateHour(day_of_week, "close_time", e.target.value)}
-                className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
+              
+              <select
+                value={getCloseSelectValue(hour)}
+                onChange={(e) => handleCloseTimeChange(day_of_week, e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              >
+                {closeTimeOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           ) : (
-            <span className="text-sm text-gray-400">
-              {is_closed ? "定休日" : "24時間営業"}
-            </span>
+            <span className="text-sm text-gray-400">定休日</span>
           )}
         </div>
 
@@ -199,7 +258,7 @@ export default function ShopBusinessHoursForm({
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-2">営業時間</h2>
         <p className="text-sm text-gray-600">
-          曜日ごとの営業時間を設定してください。定休日や24時間営業の設定も可能です。
+          曜日ごとの営業時間を設定してください。定休日の設定や、開店・閉店時刻を「オープン」「ラスト」で設定することも可能です。
         </p>
       </div>
 
@@ -210,22 +269,10 @@ export default function ShopBusinessHoursForm({
             <p className="font-medium mb-1">営業時間設定のヒント</p>
             <ul className="list-disc list-inside space-y-1 text-blue-700">
               <li>「全曜日にコピー」で同じ設定を一括適用できます</li>
-              <li>24時間営業の場合は「24時間」にチェックを入れてください</li>
+              <li>開店時刻が不定の場合は「オープン」を選択してください</li>
+              <li>閉店時刻が不定の場合は「ラスト」を選択してください</li>
               <li>定休日の場合は「定休日」にチェックを入れてください</li>
             </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* 24時間営業の表示に関する注意書き */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-          <div className="ml-3 text-sm text-yellow-800">
-            <p className="font-medium">24時間営業の表示について</p>
-            <p className="mt-1 text-yellow-700">
-              24時間営業にチェックを入れた場合、フロントサイトでは風営法の観点から「オープン～ラスト」と表示されます。
-            </p>
           </div>
         </div>
       </div>
