@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Edit, Trash2, Eye, AlertCircle, FileText } from "lucide-react";
 import { getMyShop } from "@/lib/api/shops";
-import { getMyBlogPosts, deleteBlogPost } from "@/lib/api/blogs";
+import { getMyBlogPosts, deleteBlogPost, createBlogPost } from "@/lib/api/blogs"; // createBlogPost追加
 import { Shop, BlogPost } from "@/types/models";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -21,6 +21,7 @@ export default function BlogListPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [creating, setCreating] = useState(false); // 追加
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -57,6 +58,32 @@ export default function BlogListPage() {
       setError(err.message || "データの取得に失敗しました。");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 新規下書き作成
+  const handleCreateNew = async () => {
+    setCreating(true);
+    setError("");
+
+    try {
+      const result = await createBlogPost({
+        shop_id: Number(shopId),
+        title: '無題',
+        content: '',
+        status: 'DRAFT',
+      });
+
+      if (!result.success || !result.data) {
+        throw new Error(result.message || "下書きの作成に失敗しました");
+      }
+
+      // 編集ページへリダイレクト
+      router.push(`/dashboard/shops/${shopId}/blog/${result.data.id}/edit`);
+    } catch (err: any) {
+      console.error("下書き作成エラー:", err);
+      setError(err.message || "下書きの作成に失敗しました。");
+      setCreating(false);
     }
   };
 
@@ -192,13 +219,14 @@ export default function BlogListPage() {
                 </select>
               </div>
 
-              <Link
-                href={`/dashboard/shops/${shopId}/blog/new/edit`}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              <button
+                onClick={handleCreateNew}
+                disabled={creating}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                新規作成
-              </Link>
+                {creating ? '作成中...' : '新規作成'}
+              </button>
             </div>
           </div>
 
@@ -212,13 +240,14 @@ export default function BlogListPage() {
                     ? 'まだブログ記事がありません'
                     : `${statusFilter === 'PUBLISHED' ? '公開中' : '下書き'}の記事がありません`}
                 </p>
-                <Link
-                  href={`/dashboard/shops/${shopId}/blog/new/edit`}
-                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                <button
+                  onClick={handleCreateNew}
+                  disabled={creating}
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  最初の記事を書く
-                </Link>
+                  {creating ? '作成中...' : '最初の記事を書く'}
+                </button>
               </div>
             </div>
           ) : (
@@ -247,12 +276,11 @@ export default function BlogListPage() {
                         )}
                       </div>
 
-                      <div
-                        className="text-sm text-gray-600 line-clamp-2"
-                        dangerouslySetInnerHTML={{
-                          __html: post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...',
-                        }}
-                      />
+                      <div className="text-sm text-gray-600 line-clamp-2">
+                        {post.content 
+                          ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...'
+                          : '本文なし'}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">

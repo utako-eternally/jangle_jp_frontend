@@ -7,7 +7,6 @@ import { Save, ArrowLeft, Eye } from "lucide-react";
 import { getMyShop } from "@/lib/api/shops";
 import {
   getMyBlogPost,
-  createBlogPost,
   updateBlogPost,
   addBlogContentImage,
 } from "@/lib/api/blogs";
@@ -22,7 +21,6 @@ export default function BlogEditPage() {
   const router = useRouter();
   const shopId = params.id as string;
   const postId = params.postId as string;
-  const isNew = postId === 'new';
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,19 +62,17 @@ export default function BlogEditPage() {
       }
       setShop(shopResponse.data);
 
-      // 編集モードの場合はブログ投稿を取得
-      if (!isNew) {
-        const postResponse = await getMyBlogPost(Number(postId));
-        if (postResponse.success && postResponse.data) {
-          const post = postResponse.data;
-          setTitle(post.title);
-          setContent(post.content);
-          setStatus(post.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
+      // ブログ投稿を取得
+      const postResponse = await getMyBlogPost(Number(postId));
+      if (postResponse.success && postResponse.data) {
+        const post = postResponse.data;
+        setTitle(post.title || '');
+        setContent(post.content || '');
+        setStatus(post.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
 
-          setOriginalTitle(post.title);
-          setOriginalContent(post.content);
-          setOriginalStatus(post.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
-        }
+        setOriginalTitle(post.title || '');
+        setOriginalContent(post.content || '');
+        setOriginalStatus(post.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
       }
     } catch (err: any) {
       console.error("データ取得エラー:", err);
@@ -89,26 +85,7 @@ export default function BlogEditPage() {
   // 画像アップロード（Tiptap用）
   const handleImageUpload = async (file: File): Promise<string> => {
     try {
-      // 新規作成時は先に下書き保存
-      let currentPostId = postId;
-      if (isNew && !currentPostId) {
-        const result = await createBlogPost({
-          shop_id: Number(shopId),
-          title: title || '無題',
-          content: content || '',
-          status: 'DRAFT',
-        });
-
-        if (!result.success || !result.data) {
-          throw new Error("記事の作成に失敗しました");
-        }
-
-        currentPostId = String(result.data.id);
-        // URLを更新（新規作成→編集モードへ）
-        router.replace(`/dashboard/shops/${shopId}/blog/${currentPostId}/edit`);
-      }
-
-      const result = await addBlogContentImage(Number(currentPostId), file);
+      const result = await addBlogContentImage(Number(postId), file);
 
       if (!result.success || !result.data?.image) {
         throw new Error("画像のアップロードに失敗しました");
@@ -146,20 +123,7 @@ export default function BlogEditPage() {
         published_at: publishNow && saveStatus === 'PUBLISHED' ? new Date().toISOString() : undefined,
       };
 
-      let result;
-      if (isNew) {
-        result = await createBlogPost({
-          shop_id: Number(shopId),
-          ...data,
-        });
-
-        if (result.success && result.data) {
-          // 新規作成後は編集ページにリダイレクト
-          router.replace(`/dashboard/shops/${shopId}/blog/${result.data.id}/edit`);
-        }
-      } else {
-        result = await updateBlogPost(Number(postId), data);
-      }
+      const result = await updateBlogPost(Number(postId), data);
 
       if (!result.success) {
         console.error('保存エラーの詳細:', result);
@@ -181,9 +145,7 @@ export default function BlogEditPage() {
       setStatus(saveStatus);
       
       // データを再読み込み
-      if (!isNew) {
-        await loadData();
-      }
+      await loadData();
     } catch (err: any) {
       console.error("記事保存エラー:", err);
       console.error("エラーレスポンス:", err.response);
@@ -218,22 +180,20 @@ export default function BlogEditPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-gray-900">
-              {isNew ? '新規記事作成' : '記事編集'}
+              記事編集
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
-            {!isNew && (
-              <a
-                href={`/shops/${shopId}/blog/${postId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                プレビュー
-              </a>
-            )}
+            <a
+              href={`/shops/${shopId}/blog/${postId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              プレビュー
+            </a>
 
             <button
               onClick={() => handleSave(false)}
