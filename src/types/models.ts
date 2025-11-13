@@ -205,7 +205,7 @@ export interface Shop {
   nearest_station?: StationInfo;
   sub_stations?: StationInfo[];
   owner?: User;
-  activePlan?: ShopPlan;
+  active_plan?: ShopPlan;
   images?: ShopImage[];
   frees?: ShopFree[];
   set?: ShopSet | null;

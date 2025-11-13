@@ -80,8 +80,8 @@ export default function ShopBlogPage() {
 
         // ギャラリー画像取得（有料プランの場合）
         const isPaid =
-          shopResponse.data.activePlan?.plan_type === "paid" &&
-          shopResponse.data.activePlan?.status === "active";
+          shopResponse.data.active_plan?.plan_type === "paid" &&
+          shopResponse.data.active_plan?.status === "active";
 
         if (isPaid) {
           const imagesResponse = await getShopGalleryImages(Number(shopId));
@@ -137,8 +137,8 @@ export default function ShopBlogPage() {
   }
 
   const isPaidPlan =
-    shop?.activePlan?.plan_type === "paid" &&
-    shop?.activePlan?.status === "active";
+    shop?.active_plan?.plan_type === "paid" &&
+    shop?.active_plan?.status === "active";
 
   return (
     <div className="min-h-screen bg-gray-50">
