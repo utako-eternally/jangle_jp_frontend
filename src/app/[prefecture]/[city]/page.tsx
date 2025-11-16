@@ -1,51 +1,33 @@
-// src/app/prefectures/[slug]/page.tsx
+// src/app/[prefecture]/[city]/page.tsx
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Filter, Home, ChevronRight } from 'lucide-react';
-import { getPrefecture, getPrefectureStations, getPrefectureCities, getPrefectureShops } from '@/lib/api/prefectures';
+import { getCity, getCityStations, getCityShops } from '@/lib/api/cities';
 import { getRuleGroups } from '@/lib/api/rules';
 import type { RuleGroup } from '@/lib/api/rules';
 import FilterSidebar, { FilterState } from '@/components/filter/FilterSidebar';
 import FilterModal from '@/components/filter/FilterModal';
 import SelectedFilters from '@/components/filter/SelectedFilters';
 import SortAndView, { SortOption } from '@/components/filter/SortAndView';
-import NavigationSidebar from '@/components/navigation/NavigationSidebar';
+import CityNavigationSidebar from '@/components/navigation/CityNavigationSidebar';
 import Pagination from '@/components/pagination/Pagination';
-import ShopListCard from '@/components/_shop/ShopListCard';
+import ShopListCard from '@/components/shop/ShopListCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Prefecture, Shop } from '@/types/models';
+import type { Shop } from '@/types/models';
+import type { CityDetailResponse, CityStation } from '@/types/api';
 
-interface Station {
-  type: 'group' | 'single';
-  station_group_id: number | null;
-  station_id: number | null;
-  name: string;
-  name_kana: string;
-  slug: string;
-  line_name: string | null;
-  shop_count: number;
-}
-
-interface City {
-  id: number;
-  name: string;
-  name_kana: string;
-  slug: string;
-  shop_count: number;
-}
-
-function PrefecturePageContent() {
+function CityPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const slug = params.slug as string;
+  const prefectureSlug = params.prefecture as string;
+  const citySlug = params.city as string;
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const [prefecture, setPrefecture] = useState<Prefecture | null>(null);
-  const [stations, setStations] = useState<Station[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
+  const [city, setCity] = useState<CityDetailResponse | null>(null);
+  const [stations, setStations] = useState<CityStation[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -54,7 +36,7 @@ function PrefecturePageContent() {
   const [error, setError] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   
-  // ルールグループ
+  // ✅ 追加: ルールグループ
   const [ruleGroups, setRuleGroups] = useState<RuleGroup[]>([]);
   
   // フィルター状態
@@ -76,17 +58,13 @@ function PrefecturePageContent() {
   // 並び替え
   const [sortBy, setSortBy] = useState<SortOption>('created_at');
 
-  // 市区町村・駅名のマッピング
-  const cityNames = cities.reduce((acc, city) => {
-    acc[String(city.id)] = city.name;
-    return acc;
-  }, {} as Record<string, string>);
-
-  const stationNames = stations.reduce((acc, station) => {
-    const id = station.type === 'group' ? station.station_group_id : station.station_id;
-    if (id) acc[String(id)] = station.name;
-    return acc;
-  }, {} as Record<string, string>);
+  // 駅名のマッピング
+  const stationNames = Array.isArray(stations) 
+    ? stations.reduce((acc, station) => {
+        acc[String(station.id)] = station.name;
+        return acc;
+      }, {} as Record<string, string>)
+    : {};
 
   // 初期データ読み込み
   useEffect(() => {
@@ -94,16 +72,26 @@ function PrefecturePageContent() {
       try {
         setLoading(true);
 
-        const prefData = await getPrefecture(slug);
-        setPrefecture(prefData);
+        // 市区町村情報取得
+        const cityData = await getCity(prefectureSlug, citySlug);
+        setCity(cityData);
 
-        const stationsData = await getPrefectureStations(slug, { limit: 50 });
-        setStations(stationsData);
+        // 市区町村内の駅リスト取得
+        const stationsResponse = await getCityStations(prefectureSlug, citySlug, {
+          limit: 50,
+          sort_by: 'shop_count',
+        });
+        
+        console.log('Stations Response:', stationsResponse);
+        
+        if (stationsResponse && stationsResponse.data && Array.isArray(stationsResponse.data.stations)) {
+          setStations(stationsResponse.data.stations);
+        } else {
+          console.error('Invalid stations response:', stationsResponse);
+          setStations([]);
+        }
 
-        const citiesData = await getPrefectureCities(slug);
-        setCities(citiesData);
-
-        // ルールグループを取得
+        // ✅ 追加: ルールグループを取得
         const rulesData = await getRuleGroups();
         setRuleGroups(rulesData);
 
@@ -116,11 +104,11 @@ function PrefecturePageContent() {
     };
 
     loadInitialData();
-  }, [slug]);
+  }, [prefectureSlug, citySlug]);
 
   // 店舗検索（フィルター・ソート・ページ変更時）
   useEffect(() => {
-    if (!prefecture) return;
+    if (!city) return;
 
     const loadShops = async () => {
       try {
@@ -133,11 +121,6 @@ function PrefecturePageContent() {
           sort_by: sortBy,
           sort_direction: sortBy === 'name' ? 'asc' : 'desc',
         };
-
-        // 市区町村フィルター
-        if (filters.cities.length > 0) {
-          params.cities = filters.cities.map(id => Number(id));
-        }
 
         // 営業形態フィルター
         if (filters.threePlayerFree) {
@@ -170,7 +153,7 @@ function PrefecturePageContent() {
 
         console.log('店舗検索パラメータ:', params);
 
-        const shopsResponse = await getPrefectureShops(slug, params);
+        const shopsResponse = await getCityShops(prefectureSlug, citySlug, params);
 
         console.log('店舗検索レスポンス:', shopsResponse);
 
@@ -188,7 +171,7 @@ function PrefecturePageContent() {
     };
 
     loadShops();
-  }, [prefecture, filters, sortBy, slug, currentPage]);
+  }, [city, filters, sortBy, prefectureSlug, citySlug, currentPage]);
 
   // フィルター変更ハンドラー
   const handleFilterChange = (newFilters: FilterState) => {
@@ -209,13 +192,6 @@ function PrefecturePageContent() {
       scoreTable: false,
       verifiedOnly: false,
       hasPhotos: false,
-    });
-  };
-
-  const handleRemoveCity = (cityId: string) => {
-    setFilters({
-      ...filters,
-      cities: filters.cities.filter(id => id !== cityId),
     });
   };
 
@@ -255,11 +231,11 @@ function PrefecturePageContent() {
     );
   }
 
-  if (error || !prefecture) {
+  if (error || !city) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || '都道府県が見つかりませんでした'}</p>
+          <p className="text-red-600 mb-4">{error || '市区町村が見つかりませんでした'}</p>
           <Link href="/" className="text-blue-600 hover:text-blue-700 underline">
             トップページに戻る
           </Link>
@@ -268,38 +244,17 @@ function PrefecturePageContent() {
     );
   }
 
-  // フィルターオプションの整形
-  const cityOptions = cities.map(city => ({
-    id: city.id,
-    label: city.name,
-    count: city.shop_count,
-  }));
-
-  const stationOptions = stations.map(station => {
-    const id = station.type === 'group' ? station.station_group_id : station.station_id;
-    const label = station.line_name ? `${station.name} (${station.line_name})` : station.name;
-    return {
-      id: id!,
-      label,
-      count: station.shop_count,
-    };
-  });
-
-  // ナビゲーション用データ整形
-  const navigationCities = cities.map(city => ({
-    id: city.id,
-    name: city.name,
-    slug: city.slug,
-    shop_count: city.shop_count,
-  }));
-
-  const navigationStations = stations.map(station => ({
-    id: station.type === 'group' ? station.station_group_id! : station.station_id!,
-    name: station.name,
-    slug: station.slug,
-    line_name: station.line_name || undefined,
-    shop_count: station.shop_count,
-  }));
+  // フィルターオプションの整形（市区町村ページでは駅のみ）
+  const stationOptions = Array.isArray(stations)
+    ? stations.map(station => ({
+        id: station.id,
+        // ✅ type フィールドで判定
+        label: station.type === 'station_group' 
+          ? station.name 
+          : (station.line_name ? `${station.name} (${station.line_name})` : station.name),
+        count: station.shop_count,
+      }))
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -312,7 +267,18 @@ function PrefecturePageContent() {
               トップ
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">{prefecture.name}</span>
+            {city.prefecture && (
+              <>
+                <Link
+                  href={`/${city.prefecture.slug}`}
+                  className="hover:text-blue-600"
+                >
+                  {city.prefecture.name}
+                </Link>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+            <span className="text-gray-900 font-medium">{city.name}</span>
           </div>
         </div>
       </div>
@@ -334,7 +300,7 @@ function PrefecturePageContent() {
           {/* 左サイドバー（フィルター） */}
           <aside className="hidden lg:block w-60 flex-shrink-0">
             <FilterSidebar
-              cities={cityOptions}
+              cities={[]}
               stations={stationOptions}
               selectedFilters={filters}
               onFilterChange={handleFilterChange}
@@ -347,7 +313,7 @@ function PrefecturePageContent() {
             {/* ヘッダー */}
             <div className="mb-6">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                {prefecture.name}の雀荘
+                {city.name}の雀荘
               </h1>
             </div>
 
@@ -356,9 +322,9 @@ function PrefecturePageContent() {
               <SelectedFilters
                 filters={filters}
                 ruleGroups={ruleGroups}
-                cityNames={cityNames}
+                cityNames={{}}
                 stationNames={stationNames}
-                onRemoveCity={handleRemoveCity}
+                onRemoveCity={() => {}}
                 onRemoveStation={handleRemoveStation}
                 onRemoveFilter={handleRemoveFilter}
                 onRemoveRule={handleRemoveRule}
@@ -410,10 +376,10 @@ function PrefecturePageContent() {
           {/* 右サイドバー（ナビゲーション） */}
           <aside className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-4">
-              <NavigationSidebar
-                prefectureSlug={slug}
-                cities={navigationCities}
-                stations={navigationStations}
+              <CityNavigationSidebar
+                prefectureSlug={prefectureSlug}
+                cityName={city.name}
+                stations={stations}
               />
             </div>
           </aside>
@@ -424,7 +390,7 @@ function PrefecturePageContent() {
       <FilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        cities={cityOptions}
+        cities={[]}
         stations={stationOptions}
         selectedFilters={filters}
         onFilterChange={handleFilterChange}
@@ -435,10 +401,10 @@ function PrefecturePageContent() {
   );
 }
 
-export default function PrefecturePage() {
+export default function CityPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
-      <PrefecturePageContent />
+      <CityPageContent />
     </Suspense>
   );
 }

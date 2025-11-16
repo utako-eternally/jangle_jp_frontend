@@ -1,33 +1,33 @@
-// src/app/cities/[prefecture]/[city]/page.tsx
+// src/app/[prefecture]/[city]/[station]/page.tsx
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Filter, Home, ChevronRight } from 'lucide-react';
-import { getCity, getCityStations, getCityShops } from '@/lib/api/cities';
+import { getStation, getStationShops, getLineNames, getStationNearby } from '@/lib/api/stations';
 import { getRuleGroups } from '@/lib/api/rules';
 import type { RuleGroup } from '@/lib/api/rules';
 import FilterSidebar, { FilterState } from '@/components/filter/FilterSidebar';
 import FilterModal from '@/components/filter/FilterModal';
 import SelectedFilters from '@/components/filter/SelectedFilters';
 import SortAndView, { SortOption } from '@/components/filter/SortAndView';
-import CityNavigationSidebar from '@/components/navigation/CityNavigationSidebar';
+import StationNavigationSidebar from '@/components/navigation/StationNavigationSidebar';
 import Pagination from '@/components/pagination/Pagination';
-import ShopListCard from '@/components/_shop/ShopListCard';
+import ShopListCard from '@/components/shop/ShopListCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Shop } from '@/types/models';
-import type { CityDetailResponse, CityStation } from '@/types/api';
+import type { StationDetailResponse, NearbyStation } from '@/types/api';
 
-function CityPageContent() {
+function StationPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const prefectureSlug = params.prefecture as string;
-  const citySlug = params.city as string;
+  const stationSlug = params.station as string;
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const [city, setCity] = useState<CityDetailResponse | null>(null);
-  const [stations, setStations] = useState<CityStation[]>([]);
+  const [station, setStation] = useState<StationDetailResponse | null>(null);
+  const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -39,6 +39,9 @@ function CityPageContent() {
   // ✅ 追加: ルールグループ
   const [ruleGroups, setRuleGroups] = useState<RuleGroup[]>([]);
   
+  // 市区町村情報（店舗データから取得）
+  const [cityInfo, setCityInfo] = useState<{ name: string; slug: string } | null>(null);
+
   // フィルター状態
   const [filters, setFilters] = useState<FilterState>({
     cities: [],
@@ -55,16 +58,8 @@ function CityPageContent() {
     hasPhotos: false,
   });
 
-  // 並び替え
-  const [sortBy, setSortBy] = useState<SortOption>('created_at');
-
-  // 駅名のマッピング
-  const stationNames = Array.isArray(stations) 
-    ? stations.reduce((acc, station) => {
-        acc[String(station.id)] = station.name;
-        return acc;
-      }, {} as Record<string, string>)
-    : {};
+  // 並び替え（駅ページではデフォルトで距離順）
+  const [sortBy, setSortBy] = useState<SortOption>('distance');
 
   // 初期データ読み込み
   useEffect(() => {
@@ -72,23 +67,21 @@ function CityPageContent() {
       try {
         setLoading(true);
 
-        // 市区町村情報取得
-        const cityData = await getCity(prefectureSlug, citySlug);
-        setCity(cityData);
+        // 駅情報を取得
+        const stationData = await getStation(prefectureSlug, stationSlug);
+        setStation(stationData);
 
-        // 市区町村内の駅リスト取得
-        const stationsResponse = await getCityStations(prefectureSlug, citySlug, {
-          limit: 50,
-          sort_by: 'shop_count',
-        });
-        
-        console.log('Stations Response:', stationsResponse);
-        
-        if (stationsResponse && stationsResponse.data && Array.isArray(stationsResponse.data.stations)) {
-          setStations(stationsResponse.data.stations);
-        } else {
-          console.error('Invalid stations response:', stationsResponse);
-          setStations([]);
+        // 周辺駅を取得
+        try {
+          const nearbyData = await getStationNearby(prefectureSlug, stationSlug, {
+            limit: 20,
+            max_distance_km: 10.0,
+          });
+          if (nearbyData && nearbyData.data && nearbyData.data.nearby_stations) {
+            setNearbyStations(nearbyData.data.nearby_stations);
+          }
+        } catch (nearbyErr) {
+          console.log('周辺駅の取得に失敗（スキップ）:', nearbyErr);
         }
 
         // ✅ 追加: ルールグループを取得
@@ -104,25 +97,27 @@ function CityPageContent() {
     };
 
     loadInitialData();
-  }, [prefectureSlug, citySlug]);
+  }, [prefectureSlug, stationSlug]);
 
   // 店舗検索（フィルター・ソート・ページ変更時）
   useEffect(() => {
-    if (!city) return;
+    if (!station) return;
 
     const loadShops = async () => {
       try {
         setLoadingShops(true);
 
-        // バックエンドに送信するパラメータを構築
         const params: any = {
           per_page: 15,
           page: currentPage,
-          sort_by: sortBy,
+          sort_by: sortBy === 'distance' ? 'distance_km' : sortBy,
           sort_direction: sortBy === 'name' ? 'asc' : 'desc',
         };
 
-        // 営業形態フィルター
+        if (filters.distanceFilter !== 'all') {
+          params.max_distance_km = Number(filters.distanceFilter) * 80 / 1000;
+        }
+
         if (filters.threePlayerFree) {
           params.has_three_player_free = true;
         }
@@ -133,7 +128,6 @@ function CityPageContent() {
           params.has_set = true;
         }
 
-        // 卓の種類フィルター
         if (filters.autoTable) {
           params.auto_table = true;
         }
@@ -141,28 +135,40 @@ function CityPageContent() {
           params.score_table = true;
         }
 
-        // ルールフィルター
         if (filters.rules.length > 0) {
           params.rules = filters.rules;
         }
 
-        // 特徴フィルター
         if (filters.features.length > 0) {
           params.features = filters.features;
         }
 
         console.log('店舗検索パラメータ:', params);
 
-        const shopsResponse = await getCityShops(prefectureSlug, citySlug, params);
+        const shopsResponse = await getStationShops(prefectureSlug, stationSlug, params);
 
         console.log('店舗検索レスポンス:', shopsResponse);
 
-        setShops(shopsResponse.data || []);
-        setTotalPages(shopsResponse.last_page || 1);
-        setTotalCount(shopsResponse.total || 0);
+        if (shopsResponse && shopsResponse.success && shopsResponse.data) {
+          const data = shopsResponse.data;
+          setShops(data.data || []);
+          setTotalPages(data.last_page || 1);
+          setTotalCount(data.total || 0);
 
+          if (data.data && data.data.length > 0 && data.data[0].city_name && data.data[0].city_slug) {
+            setCityInfo({
+              name: data.data[0].city_name,
+              slug: data.data[0].city_slug,
+            });
+          }
+        } else {
+          console.error('店舗検索失敗:', shopsResponse);
+          setShops([]);
+          setTotalCount(0);
+        }
       } catch (err: any) {
         console.error('店舗検索エラー:', err);
+        console.error('エラー詳細:', err.response?.data);
         setShops([]);
         setTotalCount(0);
       } finally {
@@ -171,9 +177,8 @@ function CityPageContent() {
     };
 
     loadShops();
-  }, [city, filters, sortBy, prefectureSlug, citySlug, currentPage]);
+  }, [station, filters, sortBy, prefectureSlug, stationSlug, currentPage]);
 
-  // フィルター変更ハンドラー
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
   };
@@ -195,18 +200,18 @@ function CityPageContent() {
     });
   };
 
-  const handleRemoveStation = (stationId: string) => {
-    setFilters({
-      ...filters,
-      stations: filters.stations.filter(id => id !== stationId),
-    });
-  };
-
   const handleRemoveFilter = (key: keyof FilterState) => {
-    setFilters({
-      ...filters,
-      [key]: false,
-    });
+    if (key === 'distanceFilter') {
+      setFilters({
+        ...filters,
+        distanceFilter: 'all',
+      });
+    } else {
+      setFilters({
+        ...filters,
+        [key]: false,
+      });
+    }
   };
 
   const handleRemoveRule = (ruleValue: string) => {
@@ -231,11 +236,11 @@ function CityPageContent() {
     );
   }
 
-  if (error || !city) {
+  if (error || !station) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || '市区町村が見つかりませんでした'}</p>
+          <p className="text-red-600 mb-4">{error || '駅が見つかりませんでした'}</p>
           <Link href="/" className="text-blue-600 hover:text-blue-700 underline">
             トップページに戻る
           </Link>
@@ -244,14 +249,7 @@ function CityPageContent() {
     );
   }
 
-  // フィルターオプションの整形（市区町村ページでは駅のみ）
-  const stationOptions = Array.isArray(stations)
-    ? stations.map(station => ({
-        id: station.id,
-        label: station.line_name ? `${station.name} (${station.line_name})` : station.name,
-        count: station.shop_count,
-      }))
-    : [];
+  const lineName = getLineNames(station);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,18 +262,29 @@ function CityPageContent() {
               トップ
             </Link>
             <ChevronRight className="w-4 h-4" />
-            {city.prefecture && (
+            {station.prefecture && (
               <>
                 <Link
-                  href={`/prefectures/${city.prefecture.slug}`}
+                  href={`/${station.prefecture.slug}`}
                   className="hover:text-blue-600"
                 >
-                  {city.prefecture.name}
+                  {station.prefecture.name}
                 </Link>
                 <ChevronRight className="w-4 h-4" />
               </>
             )}
-            <span className="text-gray-900 font-medium">{city.name}</span>
+            {station.city && (
+              <>
+                <Link
+                  href={`/${station.prefecture.slug}/${station.city.slug}`}
+                  className="hover:text-blue-600"
+                >
+                  {station.city.name}
+                </Link>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+            <span className="text-gray-900 font-medium">{station.name}</span>
           </div>
         </div>
       </div>
@@ -298,10 +307,11 @@ function CityPageContent() {
           <aside className="hidden lg:block w-60 flex-shrink-0">
             <FilterSidebar
               cities={[]}
-              stations={stationOptions}
+              stations={[]}
               selectedFilters={filters}
               onFilterChange={handleFilterChange}
               onReset={handleResetFilters}
+              showDistanceFilter={true}
             />
           </aside>
 
@@ -310,8 +320,11 @@ function CityPageContent() {
             {/* ヘッダー */}
             <div className="mb-6">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                {city.name}の雀荘
+                {station.name}周辺の雀荘
               </h1>
+              <p className="text-gray-600">
+                {lineName}
+              </p>
             </div>
 
             {/* 選択中の条件 */}
@@ -320,9 +333,9 @@ function CityPageContent() {
                 filters={filters}
                 ruleGroups={ruleGroups}
                 cityNames={{}}
-                stationNames={stationNames}
+                stationNames={{}}
                 onRemoveCity={() => {}}
-                onRemoveStation={handleRemoveStation}
+                onRemoveStation={() => {}}
                 onRemoveFilter={handleRemoveFilter}
                 onRemoveRule={handleRemoveRule}
                 onRemoveFeature={handleRemoveFeature}
@@ -355,7 +368,7 @@ function CityPageContent() {
               <>
                 <div className="space-y-4 mb-8">
                   {shops.map((shop) => (
-                    <ShopListCard key={shop.id} shop={shop} />
+                    <ShopListCard key={shop.id} shop={shop} showDistance={true} />
                   ))}
                 </div>
 
@@ -373,10 +386,14 @@ function CityPageContent() {
           {/* 右サイドバー（ナビゲーション） */}
           <aside className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-4">
-              <CityNavigationSidebar
+              <StationNavigationSidebar
                 prefectureSlug={prefectureSlug}
-                cityName={city.name}
-                stations={stations}
+                stationName={station.name}
+                cityName={cityInfo?.name}
+                citySlug={cityInfo?.slug}
+                lineName={lineName}
+                shopCount={totalCount}
+                nearbyStations={nearbyStations}
               />
             </div>
           </aside>
@@ -388,20 +405,21 @@ function CityPageContent() {
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
         cities={[]}
-        stations={stationOptions}
+        stations={[]}
         selectedFilters={filters}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
         onApply={() => setIsFilterModalOpen(false)}
+        showDistanceFilter={true}
       />
     </div>
   );
 }
 
-export default function CityPage() {
+export default function StationPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
-      <CityPageContent />
+      <StationPageContent />
     </Suspense>
   );
 }

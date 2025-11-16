@@ -30,7 +30,7 @@ export default function ShopCard({ shop, className = '' }: ShopCardProps) {
 
   return (
     <Link
-      href={`/shops/${shop.id}`}
+      href={`/${shop.prefecture_slug}/${shop.city_slug}/shops/${shop.id}`}
       className={`flex flex-col h-[420px] bg-white rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden group ${className}`}
     >
       {/* 画像 */}

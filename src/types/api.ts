@@ -1094,6 +1094,7 @@ export interface NearbyStation {
   name: string;
   name_kana: string;
   slug: string;
+  city_slug: string;
   line_name: string;
   prefecture_slug: string;
   distance_km: number;
@@ -1136,6 +1137,7 @@ export interface SearchSuggestResponse {
     line_name?: string;
     prefecture_name: string;
     prefecture_slug: string;
+    city_slug: string;
     shop_count: number;
     display_name: string;
   }>;

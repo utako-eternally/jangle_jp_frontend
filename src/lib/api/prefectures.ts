@@ -36,12 +36,24 @@ export const getPrefectureStations = async (
   slug: string,
   params?: { limit?: number }
 ): Promise<PrefectureStationsResponse[]> => {
-  const response = await apiClient.get<ApiResponse<PrefectureStationsResponse[]>>(
+  const response = await apiClient.get<ApiResponse<PrefectureStationsListResponse>>(
     `/prefectures/${slug}/stations`,
     { params }
   );
-  return response.data.data || [];
+  // レスポンス形式変更に対応
+  return response.data.data?.stations || [];
 };
+
+export interface PrefectureStationsListResponse {
+  prefecture: {
+    id: number;
+    name: string;
+    name_kana: string;
+    slug: string;
+  };
+  stations: PrefectureStationsResponse[];
+  total: number;
+}
 
 /**
  * 都道府県内の市区町村一覧を取得

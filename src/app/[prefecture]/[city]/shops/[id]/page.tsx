@@ -1,4 +1,4 @@
-// src/app/shops/[id]/page.tsx
+// src/app/[prefecture]/[city]/shops/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -208,7 +208,7 @@ export default function ShopPublicPage() {
             {shop.prefecture && (
               <>
                 <Link
-                  href={`/prefectures/${shop.prefecture.slug}`}
+                  href={`${shop.prefecture.slug}`}
                   className="hover:text-blue-600"
                 >
                   {shop.prefecture.name}
@@ -219,7 +219,7 @@ export default function ShopPublicPage() {
             {shop.city && (
               <>
                 <Link
-                  href={`/cities/${shop.prefecture_slug}/${shop.city.slug}`}
+                  href={`/${shop.prefecture_slug}/${shop.city.slug}`}
                   className="hover:text-blue-600"
                 >
                   {shop.city.name}
@@ -911,7 +911,7 @@ export default function ShopPublicPage() {
                 ブログ
               </h2>
               <Link
-                href={`/shops/${shopId}/blog`}
+                href={`/${shop.prefecture.slug}/${shop.city.slug}/shops/${shopId}/blog`}
                 className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 text-sm"
               >
                 すべて見る
@@ -940,7 +940,7 @@ export default function ShopPublicPage() {
                 return (
                   <Link
                     key={post.id}
-                    href={`/shops/${shopId}/blog/${post.id}`}
+                    href={`/${shop.prefecture.slug}/${shop.city.slug}/shops/${shopId}/blog/${post.id}`}
                     className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
                   >
                     {/* サムネイル画像（左側・固定サイズ） */}

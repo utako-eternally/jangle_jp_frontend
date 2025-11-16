@@ -34,7 +34,7 @@ export default function PrefectureGrid({ prefectures }: PrefectureGridProps) {
             {regionPrefectures.map((prefecture) => (
               <Link
                 key={prefecture.id}
-                href={`/prefectures/${prefecture.slug}`}
+                href={`/${prefecture.slug}`}
                 className="block p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all group"
               >
                 <div className="text-center">

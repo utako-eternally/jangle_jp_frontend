@@ -82,7 +82,7 @@ export default function StationNavigationSidebar({
               {displayedStations.map((station) => (
                 <li key={station.id}>
                   <Link
-                    href={`/stations/${prefectureSlug}/${station.slug}`}
+                    href={`/${prefectureSlug}/${station.city_slug}/${station.slug}`}
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-green-50 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
@@ -142,7 +142,7 @@ export default function StationNavigationSidebar({
           
           <div className="p-4">
             <Link
-              href={`/cities/${prefectureSlug}/${citySlug}`}
+              href={`/${prefectureSlug}/${citySlug}`}
               className="flex items-center justify-between p-3 rounded-lg hover:bg-blue-50 transition-colors group border border-gray-200"
             >
               <div>

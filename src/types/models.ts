@@ -195,12 +195,12 @@ export interface Shop {
   verified_at?: string;
   created_at: string;
   updated_at: string;
-  prefecture?: Prefecture;
-  prefecture_name?: string;
-  prefecture_slug?: string;
-  city?: City;
-  city_name?: string;
-  city_slug?: string;
+  prefecture: Prefecture;
+  prefecture_name: string;
+  prefecture_slug: string;
+  city: City;
+  city_name: string;
+  city_slug: string;
   nearest_station_slug?: string;
   nearest_station?: StationInfo;
   sub_stations?: StationInfo[];

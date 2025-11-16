@@ -44,10 +44,6 @@ export default function ShopListCard({ shop, showDistance = false }: ShopListCar
       return { text: '定休日', isOpen: false };
     }
 
-    if (todayHour.is_24h) {
-      return { text: 'オープン～ラスト', isOpen: true };
-    }
-
     return {
       text: `${todayHour.open_time || '--:--'}-${todayHour.close_time || '--:--'}`,
       isOpen: true,
@@ -58,7 +54,7 @@ export default function ShopListCard({ shop, showDistance = false }: ShopListCar
 
   return (
     <Link
-      href={`/shops/${shop.id}`}
+      href={`/${shop.prefecture_slug}/${shop.city_slug}/shops/${shop.id}`}
       className="flex gap-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-200 group"
     >
       {/* 左側：画像エリア */}

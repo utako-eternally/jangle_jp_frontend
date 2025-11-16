@@ -38,7 +38,7 @@ export default function CityNavigationSidebar({
               {displayedStations.map((station) => (
                 <li key={station.id}>
                   <Link
-                    href={`/stations/${prefectureSlug}/${station.slug}`}
+                    href={`/${prefectureSlug}/${station.city_slug}/${station.slug}`}
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-green-50 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">

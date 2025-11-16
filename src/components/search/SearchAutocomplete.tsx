@@ -84,14 +84,14 @@ export default function SearchAutocomplete({
   const handleSelectStation = (station: SearchSuggestResponse['stations'][0]) => {
     setQuery('');
     setIsOpen(false);
-    router.push(`/stations/${station.prefecture_slug}/${station.slug}`);
+    router.push(`/${station.prefecture_slug}/${station.city_slug}/${station.slug}`);
   };
 
   // 市区町村選択時
   const handleSelectCity = (city: SearchSuggestResponse['cities'][0]) => {
     setQuery('');
     setIsOpen(false);
-    router.push(`/cities/${city.prefecture_slug}/${city.slug}`);
+    router.push(`/${city.prefecture_slug}/${city.slug}`);
   };
 
   const hasResults = results && (results.stations.length > 0 || results.cities.length > 0);
