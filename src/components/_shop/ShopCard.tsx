@@ -81,7 +81,7 @@ export default function ShopCard({ shop, className = '' }: ShopCardProps) {
           {shop.open_hours && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock className="w-4 h-4 flex-shrink-0" />
-              <span className="line-clamp-1">{shop.open_hours}</span>
+              <span className="line-clamp-1">{formatOpenHours(shop.open_hours)}</span>
             </div>
           )}
         </div>
@@ -126,4 +126,30 @@ function isNewShop(createdAt: string | Date): boolean {
   const now = new Date();
   const diffInDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
   return diffInDays <= 7;
+}
+
+// 営業時間を「時分」表記にフォーマット
+function formatOpenHours(openHours: string): string {
+  // HH:MM形式を「○時○分」に変換
+  const formatTime = (time: string): string => {
+    const match = time.match(/^(\d{1,2}):(\d{2})$/);
+    if (match) {
+      return `${match[1]}時${match[2]}分`;
+    }
+    return time;
+  };
+
+  // ハイフンや〜で区切られた時間帯を処理
+  const separators = ['-', '〜', '～', '−', '–'];
+  for (const sep of separators) {
+    if (openHours.includes(sep)) {
+      const parts = openHours.split(sep).map(p => p.trim());
+      if (parts.length === 2) {
+        return `${formatTime(parts[0])}〜${formatTime(parts[1])}`;
+      }
+    }
+  }
+
+  // 単一の時間の場合
+  return formatTime(openHours);
 }
