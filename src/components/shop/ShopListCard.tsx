@@ -8,6 +8,16 @@ interface ShopListCardProps {
   showDistance?: boolean;
 }
 
+// 時刻を「○時○分」形式にフォーマット
+function formatTime(time: string | null | undefined): string {
+  if (!time) return '--時--分';
+  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) {
+    return `${match[1]}時${match[2]}分`;
+  }
+  return time;
+}
+
 export default function ShopListCard({ shop, showDistance = false }: ShopListCardProps) {
   // メイン画像のURLを取得
   const getImageUrl = (imagePaths: any) => {
@@ -45,7 +55,7 @@ export default function ShopListCard({ shop, showDistance = false }: ShopListCar
     }
 
     return {
-      text: `${todayHour.open_time || '--:--'}-${todayHour.close_time || '--:--'}`,
+      text: `${formatTime(todayHour.open_time)}〜${formatTime(todayHour.close_time)}`,
       isOpen: true,
     };
   };
