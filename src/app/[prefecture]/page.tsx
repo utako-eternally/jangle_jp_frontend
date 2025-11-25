@@ -26,6 +26,8 @@ interface Station {
   name_kana: string;
   slug: string;
   line_name: string | null;
+  prefecture_slug: string;
+  city_slug: string;
   shop_count: number;
 }
 
@@ -301,6 +303,7 @@ function PrefecturePageContent() {
     name: station.name,
     slug: station.slug,
     line_name: station.line_name || undefined,
+    city_slug: station.city_slug,
     shop_count: station.shop_count,
   }));
 

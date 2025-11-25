@@ -970,6 +970,8 @@ export interface PrefectureStationsResponse {
   name_kana: string;
   slug: string;
   line_name?: string;
+  prefecture_slug: string;  // ← 追加
+  city_slug: string;        // ← 追加
   shop_count: number;
 }
 

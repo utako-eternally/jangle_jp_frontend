@@ -17,6 +17,7 @@ interface Station {
   name: string;
   slug: string;
   line_name?: string;
+  city_slug: string;
   shop_count: number;
 }
 
@@ -55,7 +56,7 @@ export default function NavigationSidebar({
               {displayedStations.map((station) => (
                 <li key={station.id}>
                   <Link
-                    href={`/stations/${prefectureSlug}/${station.slug}`}
+                    href={`/${prefectureSlug}/${station.city_slug}/${station.slug}`}
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-green-50 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
@@ -120,7 +121,7 @@ export default function NavigationSidebar({
               {displayedCities.map((city) => (
                 <li key={city.id}>
                   <Link
-                    href={`/cities/${prefectureSlug}/${city.slug}`}
+                    href={`/${prefectureSlug}/${city.slug}`}
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 transition-colors group"
                   >
                     <span className="text-sm text-gray-700 group-hover:text-blue-600 font-medium">
