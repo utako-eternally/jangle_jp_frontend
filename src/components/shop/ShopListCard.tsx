@@ -11,7 +11,7 @@ interface ShopListCardProps {
 // 時刻を「○時○分」形式にフォーマット
 function formatTime(time: string | null | undefined): string {
   if (!time) return '--時--分';
-  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+  const match = time.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (match) {
     return `${match[1]}時${match[2]}分`;
   }
