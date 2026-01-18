@@ -16,7 +16,7 @@ export const searchSuggest = async (params: SearchSuggestParams): Promise<Search
     { params }
   );
   if (!response.data.data) {
-    return { stations: [], cities: [] };
+    return { prefectures: [], stations: [], cities: [] };
   }
   return response.data.data;
 };

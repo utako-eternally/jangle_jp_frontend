@@ -1129,6 +1129,15 @@ export interface SearchSuggestParams {
 }
 
 export interface SearchSuggestResponse {
+  prefectures: Array<{
+    type: 'prefecture';
+    prefecture_id: number;
+    name: string;
+    name_kana?: string;
+    slug: string;
+    shop_count: number;
+    display_name: string;
+  }>;
   stations: Array<{
     type: 'station_group' | 'station_single';
     station_group_id?: number;

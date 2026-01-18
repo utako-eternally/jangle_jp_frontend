@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, Building2 } from 'lucide-react';
+import { Search, MapPin, Building2, Globe } from 'lucide-react';
 import { searchSuggest } from '@/lib/api/search';
 import { SearchSuggestResponse } from '@/types/api';
 import { debounce } from 'lodash';
@@ -80,6 +80,13 @@ export default function SearchAutocomplete({
     debouncedSearch(value, prefectureFilter);
   };
 
+  // 都道府県選択時
+  const handleSelectPrefecture = (prefecture: SearchSuggestResponse['prefectures'][0]) => {
+    setQuery('');
+    setIsOpen(false);
+    router.push(`/${prefecture.slug}`);
+  };
+
   // 駅選択時
   const handleSelectStation = (station: SearchSuggestResponse['stations'][0]) => {
     setQuery('');
@@ -94,7 +101,7 @@ export default function SearchAutocomplete({
     router.push(`/${city.prefecture_slug}/${city.slug}`);
   };
 
-  const hasResults = results && (results.stations.length > 0 || results.cities.length > 0);
+  const hasResults = results && (results.prefectures.length > 0 || results.stations.length > 0 || results.cities.length > 0);
   const showNoResults = !isLoading && query.length >= 2 && !hasResults;
 
   return (
@@ -122,6 +129,32 @@ export default function SearchAutocomplete({
           {showNoResults && (
             <div className="px-4 py-8 text-center text-gray-500">
               該当する駅・市区町村が見つかりませんでした
+            </div>
+          )}
+
+          {/* 都道府県の検索結果 */}
+          {results && results.prefectures.length > 0 && (
+            <div className="border-b border-gray-100">
+              <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
+                都道府県
+              </div>
+              {results.prefectures.map((prefecture) => (
+                <button
+                  key={`prefecture-${prefecture.prefecture_id}`}
+                  onClick={() => handleSelectPrefecture(prefecture)}
+                  className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 group"
+                >
+                  <Globe className="w-5 h-5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">
+                      {prefecture.name}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {prefecture.shop_count}店舗
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
